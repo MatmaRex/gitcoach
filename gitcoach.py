@@ -3,48 +3,28 @@
 import sys, os, shutil, subprocess, pickle, numpy, signal, re
 
 threshold = 0.8 # this is _entirely arbitrary_ 
-data_file        = "/.git/coaching_data"  
-git_toplevel_dir = ""
+data_file        = "/coaching_data"  
+git_dir          = ""
 
 git_get_current_changes = "git ls-files --full-name --modified" 
 
+# Violating the "never cut and paste code" maxim, I know. FIXME 
 def setup():
 
-  get_git_toplevel_dir = "git rev-parse --show-toplevel"
-  # Violating the "never cut and paste code" maxim, I know. FIXME 
-
-  # Figure out where we are, do some looking around before we do a ton of work.
-  starting_directory = os.getcwd()
-
-  # Some git commands don't work right or at all if you run them from the .git objdir,
-  # so if we think we're in there, get out. This will break if somebody is storing
-  # their repo under some handmade, non-objdir ".git" subdirectory, but if they're 
-  # doing that, having this code fail is the least of their problems.
-
-  if ".git" in starting_directory:
-    safe_dir = re.sub( "\.git/*", "", starting_directory)
-    os.chdir(safe_dir)
-
-  # It's conceivable that this fails if somebody puts all their git repositories
-  # under .git/something but if you've done that, you've got another set of problems
-  # that code can't fix.
+  get_git_dir = "git rev-parse --git-dir"
 
   try:
-    global git_toplevel_dir
-    git_toplevel_dir = subprocess.check_output( get_git_toplevel_dir.split(), shell=False, universal_newlines=False)
+    global git_dir
+    git_dir = subprocess.check_output( get_git_dir.split(), shell=False, universal_newlines=False)
   except subprocess.CalledProcessError as e:
     print ( "\nAre you sure we're in a Git repository here? I can't find the top-level directory.")
     exit ( e.returncode )
 
-  if len(git_toplevel_dir) == 0:
-    print ("\nI can't find the top of your source tree with \"git rev-parse --show-toplevel\", so I can't continue.\n" )
-    # This can happen if you're running gitlearn from under the .git object directory, but the 
-    # "if .git" bit above should have taken care of that. I don't know what's going on here. Bailing out.
+  if len(git_dir) == 0:
+    print ("\nI can't find the git directory with \"git rev-parse --git-dir\", so I can't continue.\n" )
     exit (-1)
 
-  os.chdir( git_toplevel_dir[:-1] )
-
-  # do if file exists bit here.
+  os.chdir( git_dir[:-1] )
 
   return()
 
@@ -70,7 +50,7 @@ def coach():
     print ("Nothing to do, exiting.") 
     exit(0)
 
-  input_file = git_toplevel_dir[:-1] + data_file
+  input_file = git_dir[:-1] + data_file
  
   try:
     input_stream = open(input_file, 'r')

@@ -6,9 +6,9 @@ import sys, os, shutil, subprocess, pickle, numpy, signal, re
 
 starting_directory = ""
 current_directory = ""
-git_toplevel_dir  = ""
-temp_file         = "/.git/.coaching_data" # leading slash matters
-final_file        = "/.git/coaching_data"  # in both these strings.
+git_dir           = ""
+temp_file         = "/.coaching_data" # leading slash matters
+final_file        = "/coaching_data"  # in both these strings.
 
 def get_commit_hashes():
 
@@ -49,7 +49,7 @@ def learn():
   all_hashes = list()
   all_files = list()
 
-  output_file = git_toplevel_dir[:-1] + temp_file
+  output_file = git_dir[:-1] + temp_file
 
   try: 
     output_stream = open(output_file, 'w')
@@ -98,37 +98,20 @@ def learn():
 
 def setup():
 
-  get_git_toplevel_dir = "git rev-parse --show-toplevel"
-
-  # Figure out where we are, do some looking around before we do a ton of work.
-
-  starting_directory = os.getcwd()
-
-  # git rev-parse --show-toplevel doesn't work if we're in a .git objdir, so... 
-
-  if ".git" in starting_directory:
-    safe_dir = re.sub( "\.git/*", "", starting_directory) 
-    os.chdir(safe_dir) 
-
-  # It's conceivable that this fails if somebody puts all their git repositories
-  # under .git/something but if you've done that, you've got other problems.
+  get_git_dir = "git rev-parse --git-dir"
 
   try:
-    global git_toplevel_dir
-    git_toplevel_dir = subprocess.check_output( get_git_toplevel_dir.split(), shell=False, universal_newlines=False)
+    global git_dir
+    git_dir = subprocess.check_output( get_git_dir.split(), shell=False, universal_newlines=False)
   except subprocess.CalledProcessError as e:
     print ( "\nAre you sure we're in a Git repository here? I can't find the top-level directory.")
     exit ( e.returncode )
 
-  # this next bit should never happen, if that while loop just above works like it should...
-
-  if len(git_toplevel_dir) == 0:
-    print ("\nI can't find the top of your source tree with \"git rev-parse --show-toplevel\", so I can't continue.\n" )
-    # This can happen if you're running gitlearn from under the .git object directory, but the while loop above
-    # should have taken care of that, so I don't know what's going on here. Bailing out.
+  if len(git_dir) == 0:
+    print ("\nI can't find the git directory with \"git rev-parse --git-dir\", so I can't continue.\n" )
     exit (-1)
 
-  os.chdir( git_toplevel_dir[:-1] )
+  os.chdir( git_dir[:-1] )
 
   return()
 
@@ -136,8 +119,8 @@ def finish():
   
   # clean up and exit
 
-  output_file = git_toplevel_dir[:-1] + temp_file
-  destination_file = git_toplevel_dir[:-1] + final_file
+  output_file = git_dir[:-1] + temp_file
+  destination_file = git_dir[:-1] + final_file
 
   try:
     shutil.move(output_file, destination_file)
